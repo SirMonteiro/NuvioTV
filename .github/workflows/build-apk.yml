@@ -28,20 +28,23 @@ jobs:
 
       - name: Prepare CI keystore
         run: |
+          ci_keystore_alias="nuviotv"
+          ci_keystore_password="$(openssl rand -hex 16)"
+          echo "::add-mask::$ci_keystore_password"
           keytool -genkeypair \
-            -alias nuviotv \
+            -alias "$ci_keystore_alias" \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass 815787 \
-            -keypass 815787 \
+            -storepass "$ci_keystore_password" \
+            -keypass "$ci_keystore_password" \
             -dname "CN=NuvioTV, OU=CI, O=NuvioTV, L=CI, S=CI, C=US" \
             -keystore "$RUNNER_TEMP/nuviotv-ci.jks"
           {
             echo "NUVIO_RELEASE_STORE_FILE=$RUNNER_TEMP/nuviotv-ci.jks"
-            echo "NUVIO_RELEASE_KEY_ALIAS=nuviotv"
-            echo "NUVIO_RELEASE_KEY_PASSWORD=815787"
-            echo "NUVIO_RELEASE_STORE_PASSWORD=815787"
+            echo "NUVIO_RELEASE_KEY_ALIAS=$ci_keystore_alias"
+            echo "NUVIO_RELEASE_KEY_PASSWORD=$ci_keystore_password"
+            echo "NUVIO_RELEASE_STORE_PASSWORD=$ci_keystore_password"
           } >> "$GITHUB_ENV"
 
       - name: Build full debug APK
