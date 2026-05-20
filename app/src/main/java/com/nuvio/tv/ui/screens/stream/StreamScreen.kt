@@ -96,7 +96,7 @@ import com.nuvio.tv.ui.screens.player.LoadingOverlay
 import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.delay as coroutineDelay
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch as coroutineLaunch
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -147,11 +147,62 @@ fun StreamScreen(
         return true
     }
 
-    fun routePlayback(playbackInfo: StreamPlaybackInfo) {
+    fun launchExternalPlayback(playbackInfo: StreamPlaybackInfo) {
+        scope.coroutineLaunch {
+            val needsTorrentResolution = needsTorrentUrlResolution(playbackInfo, p2pEnabled)
+            try {
+                val resolvedUrl = resolveExternalPlaybackUrl(
+                    playbackInfo = playbackInfo,
+                    p2pEnabled = p2pEnabled,
+                    startTorrentStream = { infoHash, fileIdx, filename, trackers ->
+                        viewModel.startExternalTorrentStream(
+                            infoHash = infoHash,
+                            fileIdx = fileIdx,
+                            filename = filename,
+                            trackers = trackers
+                        )
+                    }
+                )
+
+                val url = resolvedUrl?.takeIf { it.isNotBlank() }
+                if (url == null) {
+                    if (needsTorrentResolution) {
+                        viewModel.showPlaybackError(
+                            context.getString(
+                                R.string.player_error_failed_start_torrent,
+                                context.getString(R.string.error_unknown)
+                            )
+                        )
+                    }
+                    return@coroutineLaunch
+                }
+                val launched = ExternalPlayerLauncher.launch(
+                    context = context,
+                    url = url,
+                    title = playbackInfo.title,
+                    headers = playbackInfo.headers
+                )
+                if (!launched) return@coroutineLaunch
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (needsTorrentResolution) {
+                    viewModel.showPlaybackError(
+                        context.getString(
+                            R.string.player_error_failed_start_torrent,
+                            e.message ?: context.getString(R.string.error_unknown)
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun routePlayback(playbackInfo: StreamPlaybackInfo, bypassP2pConsentCheck: Boolean = false) {
         if (openExternalInBrowser(playbackInfo)) {
             return
         }
-        if (playbackInfo.isTorrent && !p2pEnabled) {
+        if (!bypassP2pConsentCheck && playbackInfo.isTorrent && !p2pEnabled) {
             pendingTorrentPlaybackInfo = playbackInfo
             showP2pConsentDialog = true
             return
@@ -161,14 +212,7 @@ fun StreamScreen(
                 onStreamSelected(playbackInfo)
             }
             PlayerPreference.EXTERNAL -> {
-                playbackInfo.url?.let { url ->
-                    ExternalPlayerLauncher.launch(
-                        context = context,
-                        url = url,
-                        title = playbackInfo.title,
-                        headers = playbackInfo.headers
-                    )
-                }
+                launchExternalPlayback(playbackInfo)
             }
             PlayerPreference.ASK_EVERY_TIME -> {
                 pendingPlaybackInfo = playbackInfo
@@ -343,14 +387,7 @@ fun StreamScreen(
                 onExternalSelected = {
                     showPlayerChoiceDialog = false
                     pendingPlaybackInfo?.let { info ->
-                        info.url?.let { url ->
-                            ExternalPlayerLauncher.launch(
-                                context = context,
-                                url = url,
-                                title = info.title,
-                                headers = info.headers
-                            )
-                        }
+                        launchExternalPlayback(info)
                     }
                     pendingPlaybackInfo = null
                 },
@@ -368,7 +405,7 @@ fun StreamScreen(
                     showP2pConsentDialog = false
                     val info = pendingTorrentPlaybackInfo!!
                     pendingTorrentPlaybackInfo = null
-                    onStreamSelected(info)
+                    routePlayback(info, bypassP2pConsentCheck = true)
                 },
                 onDismiss = {
                     showP2pConsentDialog = false

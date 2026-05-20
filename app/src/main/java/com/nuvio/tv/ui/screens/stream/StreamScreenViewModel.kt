@@ -13,6 +13,7 @@ import com.nuvio.tv.core.debrid.DirectDebridStreamSource
 import com.nuvio.tv.core.plugin.PluginManager
 import com.nuvio.tv.core.network.NetworkResult
 import com.nuvio.tv.core.torrent.TorrentSettings
+import com.nuvio.tv.core.torrent.TorrentService
 import com.nuvio.tv.core.player.StreamAutoPlayPolicy
 import com.nuvio.tv.core.player.StreamAutoPlaySelector
 import com.nuvio.tv.data.local.PlayerPreference
@@ -60,6 +61,7 @@ class StreamScreenViewModel @Inject constructor(
     private val streamLinkCacheDataStore: StreamLinkCacheDataStore,
     private val bingeGroupCacheDataStore: BingeGroupCacheDataStore,
     private val torrentSettings: TorrentSettings,
+    private val torrentService: TorrentService,
     private val directDebridStreamSource: DirectDebridStreamSource,
     private val directDebridResolver: DirectDebridResolver,
     private val directDebridStreamPreparer: DirectDebridStreamPreparer,
@@ -911,6 +913,24 @@ class StreamScreenViewModel @Inject constructor(
 
     fun onPlaybackErrorShown() {
         updateUiStateIfChanged { it.copy(playbackErrorMessage = null) }
+    }
+
+    fun showPlaybackError(message: String) {
+        updateUiStateIfChanged { it.copy(playbackErrorMessage = message) }
+    }
+
+    suspend fun startExternalTorrentStream(
+        infoHash: String,
+        fileIdx: Int?,
+        filename: String?,
+        trackers: List<String>
+    ): String {
+        return torrentService.startStream(
+            infoHash = infoHash,
+            fileIdx = fileIdx,
+            filename = filename,
+            trackers = trackers
+        )
     }
 
     private fun showDirectDebridPlaybackError(message: String, refreshStreams: Boolean) {
