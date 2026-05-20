@@ -3,6 +3,7 @@ package com.nuvio.tv.ui.screens.player
 import android.util.Log
 import com.nuvio.tv.R
 import com.nuvio.tv.core.torrent.TorrentState
+import com.nuvio.tv.core.torrent.extractTorrentTrackers
 import com.nuvio.tv.domain.model.Stream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collectLatest
@@ -153,10 +154,7 @@ internal fun PlayerRuntimeController.launchTorrentSourceStream(
             observeTorrentState()
 
             currentTorrentSources = stream.sources
-            val trackers = stream.sources
-                ?.filter { it.startsWith("tracker:") }
-                ?.map { it.removePrefix("tracker:") }
-                ?: emptyList()
+            val trackers = extractTorrentTrackers(stream.sources)
             val localUrl = startTorrentStream(
                 infoHash = infoHash,
                 fileIdx = stream.fileIdx,
