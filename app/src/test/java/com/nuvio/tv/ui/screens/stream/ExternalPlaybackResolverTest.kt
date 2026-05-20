@@ -14,10 +14,10 @@ class ExternalPlaybackResolverTest {
     @Test
     fun `should resolve torrent URL only when torrent, p2p enabled, and url missing`() {
         val info = playbackInfo(url = null, isTorrent = true)
-        assertTrue(shouldResolveTorrentUrlForExternalPlayback(info, p2pEnabled = true))
-        assertFalse(shouldResolveTorrentUrlForExternalPlayback(info.copy(url = "https://video"), p2pEnabled = true))
-        assertFalse(shouldResolveTorrentUrlForExternalPlayback(info, p2pEnabled = false))
-        assertFalse(shouldResolveTorrentUrlForExternalPlayback(info.copy(isTorrent = false), p2pEnabled = true))
+        assertTrue(needsTorrentUrlResolution(info, p2pEnabled = true))
+        assertFalse(needsTorrentUrlResolution(info.copy(url = "https://video"), p2pEnabled = true))
+        assertFalse(needsTorrentUrlResolution(info, p2pEnabled = false))
+        assertFalse(needsTorrentUrlResolution(info.copy(isTorrent = false), p2pEnabled = true))
     }
 
     @Test
@@ -43,7 +43,7 @@ class ExternalPlaybackResolverTest {
             playbackInfo = playbackInfo(
                 url = null,
                 isTorrent = true,
-                sources = listOf("tracker:udp://a", "tracker:udp://b", "http://not-tracker")
+                trackerSources = listOf("tracker:udp://a", "tracker:udp://b", "http://not-tracker")
             ),
             p2pEnabled = true,
             startTorrentStream = { _, _, _, trackers ->
@@ -70,7 +70,7 @@ class ExternalPlaybackResolverTest {
     private fun playbackInfo(
         url: String?,
         isTorrent: Boolean,
-        sources: List<String>? = null
+        trackerSources: List<String>? = null
     ) = StreamPlaybackInfo(
         url = url,
         title = "title",
@@ -99,7 +99,7 @@ class ExternalPlaybackResolverTest {
         addonLogo = null,
         streamDescription = null,
         fileIdx = 0,
-        sources = sources,
+        sources = trackerSources,
         contentLanguage = null
     )
 }

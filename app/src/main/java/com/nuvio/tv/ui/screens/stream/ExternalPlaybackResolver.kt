@@ -2,7 +2,7 @@ package com.nuvio.tv.ui.screens.stream
 
 import com.nuvio.tv.core.torrent.extractTorrentTrackers
 
-internal fun shouldResolveTorrentUrlForExternalPlayback(
+internal fun needsTorrentUrlResolution(
     playbackInfo: StreamPlaybackInfo,
     p2pEnabled: Boolean
 ): Boolean {
@@ -23,7 +23,7 @@ internal suspend fun resolveExternalPlaybackUrl(
 ): String? {
     playbackInfo.url?.takeIf { it.isNotBlank() }?.let { return it }
 
-    if (!shouldResolveTorrentUrlForExternalPlayback(playbackInfo, p2pEnabled)) {
+    if (!needsTorrentUrlResolution(playbackInfo, p2pEnabled)) {
         return null
     }
 

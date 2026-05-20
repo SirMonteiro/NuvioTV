@@ -96,8 +96,8 @@ import com.nuvio.tv.ui.screens.player.LoadingOverlay
 import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch as coroutineLaunch
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch as coroutineLaunch
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -149,7 +149,7 @@ fun StreamScreen(
 
     fun launchExternalPlayback(playbackInfo: StreamPlaybackInfo) {
         scope.coroutineLaunch {
-            val needsTorrentResolution = shouldResolveTorrentUrlForExternalPlayback(playbackInfo, p2pEnabled)
+            val needsTorrentResolution = needsTorrentUrlResolution(playbackInfo, p2pEnabled)
             try {
                 val resolvedUrl = resolveExternalPlaybackUrl(
                     playbackInfo = playbackInfo,
@@ -198,11 +198,11 @@ fun StreamScreen(
         }
     }
 
-    fun routePlayback(playbackInfo: StreamPlaybackInfo, p2pConsentGranted: Boolean = false) {
+    fun routePlayback(playbackInfo: StreamPlaybackInfo, bypassP2pConsentCheck: Boolean = false) {
         if (openExternalInBrowser(playbackInfo)) {
             return
         }
-        if (!p2pConsentGranted && playbackInfo.isTorrent && !p2pEnabled) {
+        if (!bypassP2pConsentCheck && playbackInfo.isTorrent && !p2pEnabled) {
             pendingTorrentPlaybackInfo = playbackInfo
             showP2pConsentDialog = true
             return
@@ -405,7 +405,7 @@ fun StreamScreen(
                     showP2pConsentDialog = false
                     val info = pendingTorrentPlaybackInfo!!
                     pendingTorrentPlaybackInfo = null
-                    routePlayback(info, p2pConsentGranted = true)
+                    routePlayback(info, bypassP2pConsentCheck = true)
                 },
                 onDismiss = {
                     showP2pConsentDialog = false

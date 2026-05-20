@@ -33,7 +33,6 @@ import com.nuvio.tv.ui.components.SourceChipStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -926,16 +925,12 @@ class StreamScreenViewModel @Inject constructor(
         filename: String?,
         trackers: List<String>
     ): String {
-        return try {
-            torrentService.startStream(
-                infoHash = infoHash,
-                fileIdx = fileIdx,
-                filename = filename,
-                trackers = trackers
-            )
-        } catch (e: CancellationException) {
-            throw e
-        }
+        return torrentService.startStream(
+            infoHash = infoHash,
+            fileIdx = fileIdx,
+            filename = filename,
+            trackers = trackers
+        )
     }
 
     private fun showDirectDebridPlaybackError(message: String, refreshStreams: Boolean) {
