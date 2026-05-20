@@ -1,0 +1,58 @@
+name: Build APK
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare CI keystore
+        run: |
+          ci_keystore_alias="nuviotv"
+          ci_keystore_password="$(openssl rand -hex 16)"
+          echo "::add-mask::$ci_keystore_password"
+          keytool -genkeypair \
+            -alias "$ci_keystore_alias" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$ci_keystore_password" \
+            -keypass "$ci_keystore_password" \
+            -dname "CN=NuvioTV, OU=CI, O=NuvioTV, L=CI, S=CI, C=US" \
+            -keystore "$RUNNER_TEMP/nuviotv-ci.jks"
+          {
+            echo "NUVIO_RELEASE_STORE_FILE=$RUNNER_TEMP/nuviotv-ci.jks"
+            echo "NUVIO_RELEASE_KEY_ALIAS=$ci_keystore_alias"
+            echo "NUVIO_RELEASE_KEY_PASSWORD=$ci_keystore_password"
+            echo "NUVIO_RELEASE_STORE_PASSWORD=$ci_keystore_password"
+          } >> "$GITHUB_ENV"
+
+      - name: Build full debug APK
+        run: ./gradlew :app:compileFullDebugKotlin :app:assembleFullDebug
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-debug-apk
+          path: app/build/outputs/apk/full/debug/*.apk
+          if-no-files-found: error
